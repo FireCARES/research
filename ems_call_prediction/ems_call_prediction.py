@@ -59,6 +59,8 @@ if __name__ == '__main__':
     features['month'] = features.apply(lambda x: x['date'][5:7], axis=1)
     #No longer need the date since we have all the information we need (day of week and month)
     features = features.drop('date',axis=1)
+    #Using one hot encoding for categorical variables. Ask me if you want me to explain this further.
+    features = pd.get_dummies(features)
 
     #Splitting the data into features (predictors) and labels (the quantity we want to predict)
     labels = features['ems_calls']
