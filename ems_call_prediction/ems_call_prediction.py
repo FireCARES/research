@@ -60,6 +60,10 @@ if __name__ == '__main__':
     #No longer need the date since we have all the information we need (day of week and month)
     features = features.drop('date',axis=1)
 
+    #Splitting the data into features (predictors) and labels (the quantity we want to predict)
+    labels = features['ems_calls']
+    features = features.drop('ems_calls',axis=1)
+
     # Here we support a single hyperparameter, 'max_leaf_nodes'. Note that you can add as many
     # as your training my require in the ArgumentParser above.
     n_estimators = args.n_estimators
