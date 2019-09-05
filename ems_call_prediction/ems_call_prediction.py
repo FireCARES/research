@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.externals import joblib
+import numpy as np
 
 
 if __name__ == '__main__':
