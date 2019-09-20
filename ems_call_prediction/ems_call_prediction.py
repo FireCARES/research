@@ -23,14 +23,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Take the set of files and read them all into a single pandas dataframe
-    input_files = [ os.path.join(args.train, file) for file in os.listdir(args.train) ]
-    if len(input_files) == 0:
-        raise ValueError(('There are no files in {}.\n' +
-                          'This usually indicates that the channel ({}) was incorrectly specified,\n' +
-                          'the data specification in S3 was incorrectly specified or the role specified\n' +
-                          'does not have permission to access the data.').format(args.train, "train"))
-    raw_data = [ pd.read_json(file) for file in input_files ]
-    df = pd.concat(raw_data)
+    dataloc = os.path.join(args.train, 'query_results.json') 
+    df = pd.read_json(dataloc).reset_index(drop=True)
     
     #Converting date
     df['date'] = df['description.event_opened'].apply(lambda x: x[:10])
