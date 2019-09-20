@@ -29,7 +29,7 @@ if __name__ == '__main__':
                           'This usually indicates that the channel ({}) was incorrectly specified,\n' +
                           'the data specification in S3 was incorrectly specified or the role specified\n' +
                           'does not have permission to access the data.').format(args.train, "train"))
-    raw_data = [ pd.read_json(file, engine="python") for file in input_files ]
+    raw_data = [ pd.read_json(file) for file in input_files ]
     df = pd.concat(raw_data)
     
     #Converting date
