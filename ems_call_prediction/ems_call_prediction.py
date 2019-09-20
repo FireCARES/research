@@ -48,9 +48,7 @@ if __name__ == '__main__':
         return pd.Series(d,index=d.keys())
 
     #Day aggregation
-    features = df.groupby('date').apply(myagg).reset_index()
-    #Removing the outlier days
-    features = features[features['ems_calls']>10]
+    features = df.groupby(['fire_department.firecares_id','date']).apply(myagg).reset_index()
 
     #Adding day of week
     features = features.merge(df[['date','description.day_of_week']].drop_duplicates(), on='date')
