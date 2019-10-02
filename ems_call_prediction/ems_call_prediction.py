@@ -51,8 +51,8 @@ if __name__ == '__main__':
         rules = calendar().rules + new_rules
 
     cal = custom_calendar()
-    start = np.min(df['date'])
-    end = np.max(df['date'])
+    start = np.min(features['date'])
+    end = np.max(features['date'])
     holidays = cal.holidays(start=start,end=end,return_name=True).reset_index()
     holidays = holidays.rename(columns={'index':'date', 0:'holiday'})
 
