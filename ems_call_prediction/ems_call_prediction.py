@@ -30,49 +30,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Take the set of files and read them all into a single pandas dataframe
-    dataloc = os.path.join(args.train, 'query_results.json') 
     with open(dataloc) as data_file:
         data = json.load(data_file)
-        
-    df = json_normalize(data['prediction_data'])
-    
-    #Converting date
-    df['date'] = df['description.event_opened'].apply(lambda x: x[:10])
-    
-    #Filling nans
-    df['weather.daily.precipType']=df['weather.daily.precipType'].fillna('none')
-    df['weather.daily.precipIntensity']=df['weather.daily.precipIntensity'].fillna(0.0)
-    df['fire_department.firecares_id'] = df['fire_department.firecares_id'].astype('str')
-    
-    #Aggregation function
-    def myagg(x):
+    features = pd.io.json.json_normalize(data['prediction_data'])
 
-        #First need to group
-        d = {
-            'ems_calls': np.sum(x['NFPA.type']=='EMS'),
-            'precip_type': x['weather.daily.precipType'].iloc[0],
-            'high_temp': np.mean(x['weather.daily.temperatureHigh']),
-            'precip_intensity': x['weather.daily.precipIntensity'].iloc[0]
-        }
-
-        return pd.Series(d,index=d.keys())
-
-    #Day aggregation
-    features = df.groupby(['fire_department.firecares_id','date']).apply(myagg).reset_index()
-    
-    #Only training on days with at least three calls
-    features = features[features['ems_calls'] > 3].reset_index(drop=True)
-
-    #Adding day of week
-    features = features.merge(df[['date','description.day_of_week']].drop_duplicates(), on='date')
-    #Renaming the day of week column to make it shorter
-    features = features.rename(columns={'description.day_of_week':'day'})
-    features['month'] = features.apply(lambda x: x['date'][5:7], axis=1)    
     
     #Converting df dates to datetime objects for holiday merging
     features['date'] = features.apply(lambda x: datetime.datetime.strptime(x['date'],'%Y-%m-%d'),axis=1)
-    
     
     #We can create new rules with this class inheritance
     class custom_calendar(AbstractHolidayCalendar):
@@ -81,8 +45,6 @@ if __name__ == '__main__':
             Holiday('Christmas Eve', month=12,day=24),
             Holiday('New Years Eve', month=12,day=31),
             Holiday('DST time change', month=3, day=1, offset=pd.DateOffset(weekday=SU(2)))
-
-
         ]
         rules = calendar().rules + new_rules
 
@@ -96,13 +58,12 @@ if __name__ == '__main__':
     holidays['date'] = holidays.apply(lambda x: x['date'] + datetime.timedelta(days=1) 
                    if x['holiday'] == 'DST time change' else x['date'], axis=1)
 
-
     features = features.merge(holidays, on='date', how='left')
     features['holiday'] = features['holiday'].fillna('none')
     #Filling missing values with the average
     features['high_temp'] = features['high_temp'].fillna(np.mean(features['high_temp']))
 
-#     #No longer need the date since we have all the information we need (day of week and month)
+    #No longer need the date since we have all the information we need (day of week and month)
     features = features.drop('date',axis=1)
     #Using one hot encoding for categorical variables. Ask me if you want me to explain this further.
     features = pd.get_dummies(features)
