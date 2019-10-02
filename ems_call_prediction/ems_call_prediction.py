@@ -30,6 +30,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Take the set of files and read them all into a single pandas dataframe
+    dataloc = os.path.join(args.train, 'training_data.json') 
     with open(dataloc) as data_file:
         data = json.load(data_file)
     features = pd.io.json.json_normalize(data['prediction_data'])
@@ -72,13 +74,15 @@ if __name__ == '__main__':
     labels = features['ems_calls']
     features = features.drop('ems_calls',axis=1)
 
+
+
     # Here we support a single hyperparameter, 'max_leaf_nodes'. Note that you can add as many
     # as your training my require in the ArgumentParser above.
     n_estimators = args.n_estimators
 
     # Now use scikit-learn's random forestion regression model to predict daily ems call volumes
     rf = RandomForestRegressor(n_estimators = n_estimators)
-    
+
     # Train the model on training data
     rf.fit(features, labels)
 
