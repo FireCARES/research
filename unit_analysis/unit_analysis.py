@@ -290,7 +290,24 @@ class unit_analysis:
             s = Search(using=es,index='*-fire-incident-*')
             response = s.source(['apparatus','address.latitude','address.longitude',
                                  'durations.travel.seconds','address.first_due',
-                                'description.event_opened','description.event_closed']).query('match',fire_department__firecares_id=self.firecares_id)
+                                'description.event_opened','description.event_closed','description.event_opened',
+                     'weather.daily.precipIntensity',
+                     'weather.daily.precipType',
+                     'description.day_of_week',
+                     'weather.daily.temperatureHigh',
+                    'NFPA.type',
+                  'weather.daily.windGust',
+                  'weather.daily.visibility',
+                  'weather.daily.uvindex',
+                  'weather.daily.pressure',
+                  'weather.daily.summary',
+                  'weather.daily.windSpeed',
+                  'weather.daily.cloudCover',
+                  'weather.currently.humidity',
+                  'weather.currently.dewPoint',
+                  'weather.daily.precipAccumulation',
+                  'description.comments',
+                'fire_department.firecares_id']).query('match',fire_department__firecares_id=self.firecares_id)
 
 
             results_df = pd.DataFrame((d.to_dict() for d in response.scan()))
