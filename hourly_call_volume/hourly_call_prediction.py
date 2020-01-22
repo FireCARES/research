@@ -45,6 +45,7 @@ if __name__ == '__main__':
     df = df.merge(means, on='fire_department.firecares_id')
     df['norm_calls'] = df['calls']/df['mean_calls']
     features = pd.get_dummies(df.drop(['calls', 'mean_calls', 'norm_calls'], axis=1))
+    features = features.reindex(sorted(features.columns),axis=1)
     labels = df['norm_calls']
     
     # Here we support a single hyperparameter, 'max_leaf_nodes'. Note that you can add as many
@@ -62,18 +63,15 @@ if __name__ == '__main__':
 
     
 def input_fn(input_data, content_type):
-    """Parse input data payload
-
-    We currently only take csv input. Since we need to process both labelled
-    and unlabelled data we first determine whether the label column is present
-    by looking at how many columns were provided.
-    """
-    
-   
-    data = json.loads(input_data)
-    df = pd.io.json.json_normalize(data['prediction_data'])
-    features = pd.get_dummies(df)
+    features = pd.read_csv(input_data)
+    features = pd.get_dummies(features)
+    features = features.reindex(sorted(features.columns),axis=1)
     return features
+
+#     data = json.loads(input_data)
+#     df = pd.io.json.json_normalize(data['prediction_data'])
+#     features = pd.get_dummies(df)
+#     return features
 
 def model_fn(model_dir):
     """Deserialized and return fitted model
