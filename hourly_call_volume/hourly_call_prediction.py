@@ -63,15 +63,12 @@ if __name__ == '__main__':
 
     
 def input_fn(input_data, content_type):
-    features = pd.read_csv(StringIO(input_data),dtype={'hour': object, 'fire_department.firecares_id': object})
+    features = pd.read_csv(StringIO(input_data), names = ['fire_department.firecares_id',
+                                                          'description.day_of_week','hour'], header=None,
+                                                         dtype={'hour': object, 'fire_department.firecares_id': object})
     features = pd.get_dummies(features)
     features = features.reindex(sorted(features.columns),axis=1)
     return features
-
-#     data = json.loads(input_data)
-#     df = pd.io.json.json_normalize(data['prediction_data'])
-#     features = pd.get_dummies(df)
-#     return features
 
 def model_fn(model_dir):
     """Deserialized and return fitted model
