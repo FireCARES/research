@@ -1,0 +1,34 @@
+{
+    "current": {
+        "metrics": {},
+        "percentage_under_4_minute_travel": 74.7
+    },
+    "move_up": {
+        "strategy": "maximize fraction of incidents within 4 minute travel time",
+        "metrics": {
+            "percentage_under_4_minute_travel": 86.4
+        },
+        "moves": [
+            {
+                "unit_id": "E14",
+                "station": 16
+            },
+            {
+                "unit_id": "E8",
+                "station": 17
+            },
+            {
+                "unit_id": "E25",
+                "station": 23
+            },
+            {
+                "unit_id": "E19",
+                "station": 20
+            },
+            {
+                "unit_id": "E6",
+                "station": 5
+            }
+        ]
+    }
+}
