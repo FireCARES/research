@@ -1,7 +1,8 @@
 {
     "current": {
-        "metrics": {},
-        "percentage_under_4_minute_travel": 74.7
+        "metrics": {
+            "percentage_under_4_minute_travel": 74.7
+        }
     },
     "move_up": {
         "strategy": "maximize fraction of incidents within 4 minute travel time",

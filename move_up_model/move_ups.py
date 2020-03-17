@@ -271,7 +271,7 @@ class move_up_model:
         self.output = {}
         self.output['current'] = {}
         self.output['current']['metrics'] = {}
-        self.output['current']['percentage_under_4_minute_travel'] = self.current_frac_covered*100
+        self.output['current']['metrics']['percentage_under_4_minute_travel'] = self.current_frac_covered*100
         self.output['move_up'] = {}
         self.output['move_up']['strategy'] = 'maximize fraction of incidents within 4 minute travel time'
         self.output['move_up']['metrics'] = {}
