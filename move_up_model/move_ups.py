@@ -10,6 +10,7 @@ from scipy.optimize import linear_sum_assignment
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import pandas as pd
+import pdb
 import numpy as np
 
 class move_up_model:
@@ -195,7 +196,7 @@ class move_up_model:
            
         #Generate a set for each currently available unit
         self.unit_subsets = {}
-        covered = set()
+        self.currently_covered = set()
         for available_unit in tqdm(self.unit_coverage_polys.keys()):
             incident_set = set()
             for i,location in enumerate(self.incident_distribution):
@@ -205,9 +206,24 @@ class move_up_model:
                     incident_set.add(i)
             #Make a list of sets at the aggregate level too
             self.unit_subsets[available_unit] = incident_set
-            covered |= self.unit_subsets[available_unit]
-        self.current_frac_covered = len(covered)/len(self.incident_distribution)
-        
+            self.currently_covered |= self.unit_subsets[available_unit]
+        self.current_frac_covered = len(self.currently_covered)/len(self.incident_distribution)
+
+    def movement_improvement(self, unit, station):
+	    """
+	    Calculates the improvement of individual moves. The improvement refers to the net change in the fraction of incidents
+	    that are covered. Note that the overall improvement is not the sum of the individual improvements.
+	    """
+	    covered = set()
+	    for key in self.unit_subsets.keys():
+	        if key == unit:
+	            covered |= self.station_subsets[station]
+	        else:
+	            covered |= self.unit_subsets[key]
+	    improvement = len(covered) - len(self.currently_covered)
+	    improvement = improvement/ len(self.incident_distribution)*100
+	    return improvement
+
     def max_coverage(self):
         """
         Uses the greedy algorithm to determine the set of stations that should have a unit
@@ -222,16 +238,16 @@ class move_up_model:
             the set of ideal stations. This is the estimated fraction covered if the recommended strategy is implemented.
 
         """
-        covered = set()
+        self.covered = set()
         self.ideal_stations = []
         for i in range(self.num_available):
             #First make a list of stations that have not been added to self.ideal_stations
             remaining_stations = [station for station in list(self.station_subsets.keys()) if station not in self.ideal_stations]
             #Then add the station that has the most uncovered incidents
-            append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - covered))
+            append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
             self.ideal_stations.append(append)
-            covered |= self.station_subsets[append]
-        self.moveup_frac_covered = len(covered)/len(self.incident_distribution)
+            self.covered |= self.station_subsets[append]
+        self.moveup_frac_covered = len(self.covered)/len(self.incident_distribution)
         
         
     def balanced_assignment(self, exponent=1):
@@ -256,7 +272,8 @@ class move_up_model:
         self.movement_rec = []
         for i in range(len(self.ideal_stations)):
             self.movement_rec.append({'unit': self.unit_list[movements[0][i]],
-                                       'station': self.ideal_stations[movements[1][i]]})
+                                       'station': self.ideal_stations[movements[1][i]], 
+                                       'distance': self.distance_matrix[movements[0][i],movements[1][i]]})
  
     def output_recommendations(self):
         """
@@ -283,6 +300,8 @@ class move_up_model:
                 append = {}
                 append['unit_id'] = rec['unit']
                 append['station'] = rec['station']
+                append['distance'] = rec['distance']
+                append['improvement'] = self.movement_improvement(rec['unit'], rec['station'])
                 self.output['move_up']['moves'].append(append)
             
         with open('example_output.json', 'w') as fp:
