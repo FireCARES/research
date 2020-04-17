@@ -1,17 +1,16 @@
 import json
-# from move_ups import move_up_model
+from move_ups import move_up_model
 
 def move_up(event, context):
     try:
-        with open('./example_output.json') as f:
-            response = json.load(f)
-        # self.response = move_up_model(event, "3244").output()
+        model = move_up_model(event)
         return {
             "statusCode": 200,
-            "body": json.dumps(response)
+            "body": json.dumps(model.output)
         }
-    except Exception:
+    except Exception as error:
+        print(error)
         return {
-            "statusCode": 500,
-            "body": 'An error occured running model'
+            "statusCode": 500
         }
+

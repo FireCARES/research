@@ -18,16 +18,13 @@ class move_up_model:
     Class that holds methods for issuing movement recommendations of available units
     """
 
-    def __init__(self, input_data, fdid, state):
+    def __init__(self, input_data):
         # Assigning the parameters in the input data to the class
         for key in input_data.keys():
             setattr(self, key, input_data[key])
 
-        self.fdid = fdid
-        self.state = state
-
         # Getting jurisdictional boundary
-        self.get_boundary()
+        # self.get_boundary()
 
         # Counting number of units currently available
         self.count_available()
@@ -141,29 +138,6 @@ class move_up_model:
         # Using a circle as a placeholder until the GIS API is back up
         poly = Point(long, lat).buffer(0.02)
         return poly
-
-    def get_boundary(self):
-        """
-        Determines the jurisidictional boundary of the department
-        
-        Attributes
-        ----------
-        self.boundary: shapely.Polygon
-            Polygon of the department's juridictional boundary
-        """
-
-        q = """
-        select * from firestation_firedepartment
-        where fdid='""" + self.fdid + """'
-        and state='""" + self.state + """'"""
-
-        nfirs = psycopg2.connect(service='nfirs')
-        with nfirs.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(q)
-            items = cur.fetchall()
-            boundary_df = pd.DataFrame(items)
-
-        self.boundary = wkb.loads(boundary_df['geom'].iloc[0], hex=True)
 
     def build_sets(self):
         """
@@ -304,6 +278,3 @@ class move_up_model:
                 append['distance'] = rec['distance']
                 append['improvement'] = self.movement_improvement(rec['unit'], rec['station'])
                 self.output['move_up']['moves'].append(append)
-
-        with open('example_output.json', 'w') as fp:
-            json.dump(self.output, fp, indent=4)
