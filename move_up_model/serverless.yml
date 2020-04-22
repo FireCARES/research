@@ -10,6 +10,11 @@ provider:
          - "lambda:*"
        Resource:
          - arn:aws:lambda:*:*:*
+    - Effect: "Allow"
+       Action:
+         - "apigateway:*"
+       Resource:
+         - arn:aws:apigateway:*:*:*
 
 functions:
   move_up:
