@@ -10,7 +10,7 @@ provider:
          - "lambda:*"
        Resource:
          - arn:aws:lambda:*:*:*
-    - Effect: "Allow"
+     - Effect: "Allow"
        Action:
          - "apigateway:*"
        Resource:
