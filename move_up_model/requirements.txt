@@ -5,7 +5,7 @@ elasticsearch==7.6.0
 elasticsearch-dsl==7.1.0
 idna==2.9
 kiwisolver==1.1.0
-matplotlib==3.2.1
+matplotlib==3.0.3
 numpy==1.18.2
 pandas==1.0.3
 psycopg2-binary==2.8.5
