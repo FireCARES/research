@@ -4,6 +4,11 @@ service: move-up-model
 plugins:
   - serverless-python-requirements
 
+custom:
+  pythonRequirements:
+    dockerEnv:
+      - https_proxy
+
 provider:
   name: aws
   runtime: python3.8
