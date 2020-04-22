@@ -22,4 +22,4 @@ functions:
     events:
       - http:
           path: move-up-model
-          method: get
+          method: post
