@@ -6,8 +6,10 @@ plugins:
 
 custom:
   pythonRequirements:
-    dockerEnv:
-      - https_proxy
+     dockerizePip: true
+     dockerEnvVars:
+       - http_proxy
+       - https_proxy
 
 provider:
   name: aws
