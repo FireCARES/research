@@ -1,9 +1,6 @@
 
 service: move-up-model
 
-plugins:
-  - serverless-python-requirements
-
 provider:
   name: aws
   runtime: python3.8
