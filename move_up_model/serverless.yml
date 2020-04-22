@@ -4,12 +4,12 @@ service: move-up-model
 provider:
   name: aws
   runtime: python3.8
-  # iamRoleStatements:
-  #    - Effect: "Allow"
-  #      Action:
-  #        - "lambda:*"
-  #      Resource:
-  #        - arn:aws:lambda:*:*:*
+  iamRoleStatements:
+     - Effect: "Allow"
+       Action:
+         - "lambda:*"
+       Resource:
+         - arn:aws:lambda:*:*:*
 
 functions:
   move_up:
