@@ -4,9 +4,17 @@ service: move-up-model
 provider:
   name: aws
   runtime: python3.8
+  # iamRoleStatements:
+  #    - Effect: "Allow"
+  #      Action:
+  #        - "lambda:*"
+  #      Resource:
+  #        - arn:aws:lambda:*:*:*
 
 functions:
   move_up:
     handler: handler.move_up
     events:
-      - http: GET move-up-model
+      - http:
+          path: move-up-model
+          method: get
