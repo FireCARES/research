@@ -6,6 +6,8 @@ plugins:
 
 package:
   individually: false
+  exclude:
+    - '**/node_modules/**'
   zip: true
 
 custom:
