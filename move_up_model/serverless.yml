@@ -4,6 +4,11 @@ service: move-up-model
 plugins:
   - serverless-python-requirements
 
+package:
+  individually: false
+  exclude:
+    - './node_modules/**'
+
 custom:
   pythonRequirements:
     dockerizePip: non-linux
