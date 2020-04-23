@@ -2,7 +2,7 @@
 service: move-up-model
 
 package:
-    individually: true
+  individually: true
 
 plugins:
   - serverless-package-python-functions
