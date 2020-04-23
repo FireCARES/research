@@ -9,7 +9,7 @@ plugins:
 
 custom:
   pkgPyFuncs:
-    buildDir: _build
+    buildDir: build
     globalRequirements:
       - ./requirements.txt
     cleanup: true
@@ -35,7 +35,7 @@ functions:
     package:
       include:
         - move_up
-      artifact: ${self:custom.pkgPyFuncs.buildDir}/function1.zip
+      artifact: ${self:custom.pkgPyFuncs.buildDir}/move_up.zip
     events:
       - http:
           path: move-up-model
