@@ -4,11 +4,11 @@ service: move-up-model
 plugins:
   - serverless-package-python-functions
 
-  pkgPyFuncs:
-    buildDir: _build
-    globalRequirements:
-      - ./requirements.txt
-    cleanup: true
+pkgPyFuncs:
+  buildDir: _build
+  globalRequirements:
+    - ./requirements.txt
+  cleanup: true
 
 provider:
   name: aws
