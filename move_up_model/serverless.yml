@@ -6,8 +6,13 @@ plugins:
 
 package:
   individually: false
+  include:
+    - './move_ups.py'
+    - './handler.py'
+    - './serverless.yml'
+    - './requirements.txt'
   exclude:
-    - './node_modules/**'
+    - '**'
 
 custom:
   pythonRequirements:
