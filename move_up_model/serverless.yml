@@ -2,14 +2,7 @@
 service: move-up-model
 
 plugins:
-  - serverless-python-requirements
-
-custom:
-  pythonRequirements:
-     dockerizePip: true
-     dockerEnvVars:
-       - http_proxy
-       - https_proxy
+  - serverless-package-python-functions
 
 provider:
   name: aws
