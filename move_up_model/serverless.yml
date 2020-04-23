@@ -7,6 +7,7 @@ plugins:
 custom:
   pythonRequirements:
     dockerizePip: non-linux
+    pythonBin: /usr/local/bin/python3 # point to some path that has python3 on you machine
 
 provider:
   name: aws
