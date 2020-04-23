@@ -6,13 +6,7 @@ plugins:
 
 package:
   individually: false
-  include:
-    - './move_ups.py'
-    - './handler.py'
-    - './serverless.yml'
-    - './requirements.txt'
-  exclude:
-    - '**'
+  zip: true
 
 custom:
   pythonRequirements:
