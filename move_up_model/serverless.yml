@@ -13,6 +13,7 @@ custom:
   pythonRequirements:
     dockerizePip: non-linux
     pythonBin: /usr/bin/python3.5
+    zip: true
 
 provider:
   name: aws
