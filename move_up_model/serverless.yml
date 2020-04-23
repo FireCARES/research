@@ -1,17 +1,12 @@
 
 service: move-up-model
 
-package:
-  individually: true
-
 plugins:
-  - serverless-package-python-functions
+  - serverless-python-requirements
 
 custom:
-  pkgPyFuncs:
-    buildDir: build
-    requirementsFile: 'requirements.txt'
-    cleanup: true
+  pythonRequirements:
+    dockerizePip: non-linux
 
 provider:
   name: aws
@@ -31,10 +26,7 @@ provider:
 functions:
   move_up:
     handler: handler.move_up
-    package:
-      include:
-        - move_up
-      artifact: ${self:custom.pkgPyFuncs.buildDir}/move_up.zip
+    module: move_up
     events:
       - http:
           path: move-up-model
