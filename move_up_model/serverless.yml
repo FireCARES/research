@@ -15,6 +15,9 @@ custom:
   pythonRequirements:
     dockerizePip: non-linux
     pythonBin: /usr/local/bin/python3.8
+    dockerEnvVars:
+      - http_proxy
+      - https_proxy
 
 provider:
   name: aws
