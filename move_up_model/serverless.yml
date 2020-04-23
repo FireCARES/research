@@ -14,7 +14,7 @@ package:
 custom:
   pythonRequirements:
     dockerizePip: non-linux
-    pythonBin: /usr/bin/python3.8
+    pythonBin: /usr/local/bin/python3.8
 
 provider:
   name: aws
