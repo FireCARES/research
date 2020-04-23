@@ -4,6 +4,12 @@ service: move-up-model
 plugins:
   - serverless-package-python-functions
 
+  pkgPyFuncs:
+    buildDir: _build
+    globalRequirements:
+      - ./requirements.txt
+    cleanup: true
+
 provider:
   name: aws
   runtime: python3.8
@@ -22,6 +28,10 @@ provider:
 functions:
   move_up:
     handler: handler.move_up
+    package:
+      include:
+        - move_up
+      artifact: ${self:custom.pkgPyFuncs.buildDir}/function1.zip
     events:
       - http:
           path: move-up-model
