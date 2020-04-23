@@ -10,8 +10,7 @@ plugins:
 custom:
   pkgPyFuncs:
     buildDir: build
-    globalRequirements:
-      - ./requirements.txt
+    requirementsFile: 'requirements.txt'
     cleanup: true
 
 provider:
