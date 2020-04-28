@@ -2,8 +2,6 @@ import pygeohash as pgh
 import requests
 import json
 from tqdm import tqdm
-from shapely import geometry
-from shapely import wkb
 from shapely.geometry import Point
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
@@ -11,7 +9,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
-
 
 class move_up_model:
     """
