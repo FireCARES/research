@@ -6,9 +6,6 @@ plugins:
 
 package:
   individually: false
-  exclude:
-    - 'node_modules/**'
-    - '!node_modules/**'
   zip: true
   slim: true
 
@@ -38,6 +35,10 @@ provider:
 functions:
   move_up:
     handler: handler.move_up
+    package:
+      exclude:
+        - 'node_modules/**'
+        - '!node_modules/**'
     events:
       - http:
           path: move-up-model
