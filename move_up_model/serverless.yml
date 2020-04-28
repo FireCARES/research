@@ -7,10 +7,10 @@ plugins:
 package:
   individually: false
   exclude:
-    - './node_modules/**'
-    - '!./node_modules/**'
-    - './__pycache__/**'
-    - './package-lock.json'
+    - 'node_modules/**'
+    - '__pycache__/**'
+    - 'package-lock.json'
+    - 'Python-3.8.2/**'
   zip: true
   slim: true
 
