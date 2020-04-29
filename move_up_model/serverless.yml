@@ -41,6 +41,7 @@ provider:
 functions:
   move_up:
     handler: handler.move_up
+    timeout: 20
     events:
       - http:
           path: move-up-model
