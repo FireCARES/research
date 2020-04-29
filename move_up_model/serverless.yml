@@ -45,3 +45,4 @@ functions:
       - http:
           path: move-up-model
           method: post
+          cors: true
