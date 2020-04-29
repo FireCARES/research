@@ -3,9 +3,8 @@ from move_ups import move_up_model
 
 def move_up(event, context):
     try:
-        print(event)
-        print(event['body'])
-        model = move_up_model(event['body'])
+        payload = json.loads(event['body'])
+        model = move_up_model(payload)
         return {
             "statusCode": 200,
             "body": json.dumps(model.output)
