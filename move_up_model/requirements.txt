@@ -3,6 +3,7 @@ pandas==1.0.3
 psycopg2-binary==2.8.5
 pygeohash==1.2.0
 pytz==2019.3
+requests==2.23.0
 scipy==1.4.1
 Shapely==1.7.0
 tqdm==4.45.0
