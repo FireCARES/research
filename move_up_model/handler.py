@@ -8,8 +8,8 @@ def move_up(event, context):
         return {
             "statusCode": 200,
             "headers": {
-                "Access-Control-Allow-Origin" : "*",
-                "Content-Type": "application/json"
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': 'true',
             },
             "body": json.dumps(model.output)
         }
