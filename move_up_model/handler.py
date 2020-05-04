@@ -7,6 +7,9 @@ def move_up(event, context):
         model = move_up_model(payload)
         return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin" : "*",
+            },
             "body": json.dumps(model.output)
         }
     except Exception as error:
