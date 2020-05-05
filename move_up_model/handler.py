@@ -21,7 +21,7 @@ def move_up(event, context):
             "statusCode": 500,
             "headers": headers,
             "body": json.dumps({
-                "error": "Error: " + error
+                "error": "An error occured. See logs for details"
             })
         }
 
