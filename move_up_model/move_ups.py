@@ -8,6 +8,7 @@ from shapely.geometry import Point
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
 import psycopg2
+import pdb
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
@@ -22,7 +23,6 @@ class move_up_model:
         # Assigning the parameters in the input data to the class
         for key in input_data.keys():
             setattr(self, key, input_data[key])
-
         self.fdid = fdid
         self.state = state
 
@@ -241,13 +241,24 @@ class move_up_model:
         """
         self.covered = set()
         self.ideal_stations = []
+        
+        #This list is used so that the self can reset whenever every station has a unit
+        #Then if you still have available units, optimize for double coverage with the overflow, etc. 
+        available_stations = []
+
         for i in range(self.num_available):
             # First make a list of stations that have not been added to self.ideal_stations
             remaining_stations = [station for station in list(self.station_subsets.keys()) if
-                                  station not in self.ideal_stations]
+                                  station not in available_stations]
             # Then add the station that has the most uncovered incidents
             append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
             self.ideal_stations.append(append)
+            available_stations.append(append)
+            if len(remaining_stations) == 1:
+                #If we fill all the stations, then reset the list
+                available_stations = []
+            
+            #After every station is covered, this shouldn't change
             self.covered |= self.station_subsets[append]
         self.moveup_frac_covered = len(self.covered) / len(self.incident_distribution)
 
