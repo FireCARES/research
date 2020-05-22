@@ -133,13 +133,18 @@ class move_up_model:
         poly: shapely.Polygon
             The polygon represnting the region that is within a *drivetime* travel time from the specified point
         """
-
-        #         drivetimeurl = 'https://geo.firecares.org/?f=json&Facilities={"features":[{"geometry":{"x":' + str(long) + ',"spatialReference":{"wkid":4326},"y":' + str(lat)+ '}}],"geometryType":"esriGeometryPoint"}&env:outSR=4326&text_input=4&Break_Values='+str(drivetime)+ '&returnZ=false&returnM=false'
-        #         getdrivetime = requests.get(drivetimeurl)
-        #         poly = geometry.Polygon(json.loads(getdrivetime.content)['results'][0]['value']['features'][0]['geometry']['rings'][0])
-
-        # Using a circle as a placeholder until the GIS API is back up
-        poly = Point(long, lat).buffer(0.02)
+        
+        #The public token
+        token = 'pk.eyJ1IjoidGJ1ZmZpbmd0b24iLCJhIjoiY2thaGZ3dDI3MDRhNTJxank2MGNsZG93YyJ9.bKkw0vlKSCsouBO5pW0UyQ'
+        
+        base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
+        drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
+                                    &polygons=true&access_token={token}""".format(longitude=long,
+                                                                                latitude = lat,
+                                                                                contours_minutes = drivetime,
+                                                                                token = token)
+        getdrivetime = requests.get(drivetime_url)
+        poly = geometry.Polygon(json.loads(getdrivetime.content)['features'][0]['geometry']['coordinates'][0])
         return poly
 
     def get_boundary(self):
