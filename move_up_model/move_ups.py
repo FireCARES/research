@@ -2,6 +2,7 @@ import pygeohash as pgh
 import requests
 import json
 from tqdm import tqdm
+from shapely import geometry
 from shapely.geometry import Point
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
