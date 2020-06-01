@@ -327,7 +327,7 @@ class move_up_model:
 
         for rec in self.movement_rec:
             # Assumption is that if a unit id ends with the station id, then it's not a move
-            if not rec['unit'].endswith(str(rec['station'])):
+            if not rec['distance'] < 0.02:
                 append = {}
                 append['unit_id'] = rec['unit']
                 append['station'] = rec['station']
