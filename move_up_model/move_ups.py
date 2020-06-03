@@ -4,6 +4,7 @@ import json
 from tqdm import tqdm
 from shapely import geometry
 from shapely.geometry import Point
+from shapely.geometry import Polygon
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
 import psycopg2
@@ -104,12 +105,16 @@ class move_up_model:
         self.unit_coverage_polys = {}
         self.unit_list = []  # A list of all available unit ids
         self.unit_locs = []  # A list of all current locations of available units
+        self.current_unionized_poly = Polygon() #Unionized coverage polygon
+
         for i, status in enumerate(tqdm(self.unit_status)):
             if status['status'] == 'AVAILABLE':
                 lat, long = pgh.decode(status['current_location'])
                 self.unit_locs.append([long, lat])
                 self.unit_list.append(status['unit_id'])
-                self.unit_coverage_polys[status['unit_id']] = self.drivetime_poly(long, lat, self.covered_time)
+                polygon = self.drivetime_poly(long, lat, self.covered_time).buffer(0)
+                self.unit_coverage_polys[status['unit_id']] = polygon
+                self.current_unionized_poly = self.current_unionized_poly.union(polygon)
 
     def drivetime_poly(self, long, lat, drivetime=4):
         """Generates a travel time polygon surrounding a location
@@ -129,8 +134,8 @@ class move_up_model:
             The polygon represnting the region that is within a *drivetime* travel time from the specified point
         """
 
-       #The public token
-        token = 'pk.eyJ1IjoidGJ1ZmZpbmd0b24iLCJhIjoiY2thaGZ3dDI3MDRhNTJxank2MGNsZG93YyJ9.bKkw0vlKSCsouBO5pW0UyQ'
+        #Our token
+        token = 'pk.eyJ1IjoicHJvbWluZW50ZWRnZS1pcHNkaSIsImEiOiJja2FpZzg3OXYwMGk3MnhvY2Ric2k4MjdrIn0.zdkP7yOVF_HyWstRyt_QRg'
 
         base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
         drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
@@ -140,7 +145,7 @@ class move_up_model:
                                                                                 token = token)
         getdrivetime = requests.get(drivetime_url)
         poly = geometry.Polygon(json.loads(getdrivetime.content)['features'][0]['geometry']['coordinates'][0])
-        return poly
+        return poly.buffer(0)
 
     def build_sets(self):
         """
@@ -223,6 +228,9 @@ class move_up_model:
         #Then if you still have available units, optimize for double coverage with the overflow, etc. 
         available_stations = []
 
+        #Compute unionized polygon of all "ideal" stations
+        self.optimized_unionized_poly = Polygon()
+
         for i in range(self.num_available):
             # First make a list of stations that have not been added to self.ideal_stations
             remaining_stations = [station for station in list(self.station_subsets.keys()) if
@@ -231,6 +239,9 @@ class move_up_model:
             append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
             self.ideal_stations.append(append)
             available_stations.append(append)
+            self.optimized_unionized_poly = self.optimized_unionized_poly.union(self.station_coverage_polys[append])
+
+            
             if len(remaining_stations) == 1:
                 #If we fill all the stations, then reset the list
                 available_stations = []
@@ -278,14 +289,16 @@ class move_up_model:
         self.output['current'] = {}
         self.output['current']['metrics'] = {}
         self.output['current']['metrics']['percentage_under_4_minute_travel'] = self.current_frac_covered * 100
+        self.output['current']['unoptimized_iso'] = geometry.mapping(self.current_unionized_poly)
         self.output['move_up'] = {}
         self.output['move_up']['strategy'] = 'maximize fraction of incidents within 4 minute travel time'
         self.output['move_up']['metrics'] = {}
         self.output['move_up']['metrics']['percentage_under_4_minute_travel'] = self.moveup_frac_covered * 100
+        self.output['move_up']['optimized_iso'] = geometry.mapping(self.optimized_unionized_poly)
         self.output['move_up']['moves'] = []
         for rec in self.movement_rec:
             # Assumption is that if a unit id ends with the station id, then it's not a move
-            if not rec['unit'].endswith(str(rec['station'])):
+            if not rec['distance'] < 0.02:
                 append = {}
                 append['unit_id'] = rec['unit']
                 append['station'] = rec['station']
