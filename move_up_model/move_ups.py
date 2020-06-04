@@ -1,6 +1,7 @@
 import pygeohash as pgh
 import requests
 import json
+import os
 from tqdm import tqdm
 from shapely import geometry
 from shapely.geometry import Point
@@ -135,7 +136,7 @@ class move_up_model:
         """
 
         #Our token
-        token = 'pk.eyJ1IjoicHJvbWluZW50ZWRnZS1pcHNkaSIsImEiOiJja2FpZzg3OXYwMGk3MnhvY2Ric2k4MjdrIn0.zdkP7yOVF_HyWstRyt_QRg'
+        token = os.environ.get('MAPBOX_KEY')
 
         base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
         drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
