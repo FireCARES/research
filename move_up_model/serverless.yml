@@ -43,7 +43,7 @@ functions:
     handler: handler.move_up
     timeout: 20
     environment:
-      MAPBOX_KEY: ${env:MAPBOX_KEY}
+      MAPBOX_API_KEY: ${env:MAPBOX_API_KEY}
     events:
       - http:
           path: move-up-model
