@@ -41,7 +41,7 @@ provider:
 functions:
   move_up:
     handler: handler.move_up
-    timeout: 240
+    timeout: 80
     environment:
       MAPBOX_API_KEY: ${env:MAPBOX_API_KEY}
     events:
@@ -49,4 +49,3 @@ functions:
           path: move-up-model
           method: post
           cors: true
-          async: true
