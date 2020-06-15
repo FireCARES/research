@@ -13,6 +13,7 @@ import pdb
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
+import os
 
 
 class move_up_model:
@@ -70,7 +71,7 @@ class move_up_model:
         """
         Using the station location geohashes, creates a dictionary of "coverage polygons" for the stations.
         For each station, the coverage polygon is the set of locations that is within a self.coverage_time 
-        travel time from the station.
+        travel time from the station. Also compute the centroid of stations as a reference point.
         
         Attributes
         ----------
@@ -92,6 +93,10 @@ class move_up_model:
             self.station_list.append(status['station_id'])
             self.station_coverage_polys[status['station_id']] = self.drivetime_poly(long, lat, self.covered_time)
 
+        #Computing centroid of all stations so we can convert distances to miles 
+        self.station_centroid = [np.mean(np.array(self.station_locs)[:,0]), 
+                              np.mean(np.array(self.station_locs)[:,1])]
+            
     def get_unit_coverage_polys(self):
         """
         Using the locations of currently available units, get corresponding coverage polygons and compute
@@ -140,7 +145,7 @@ class move_up_model:
         """
         
         #Our token
-        token = 'pk.eyJ1IjoicHJvbWluZW50ZWRnZS1pcHNkaSIsImEiOiJja2FpZzg3OXYwMGk3MnhvY2Ric2k4MjdrIn0.zdkP7yOVF_HyWstRyt_QRg'
+        token = os.environ['mapbox_key']
         
         base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
         drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
@@ -278,6 +283,31 @@ class move_up_model:
             self.covered |= self.station_subsets[append]
         self.moveup_frac_covered = len(self.covered) / len(self.incident_distribution)
 
+    def miles_convert(self, locations):
+        """
+        Converts a list of lat/long pairs to x-y coordinates based on miles. The x coordinate is 
+        the distance east of the centroid of stations and the y coordinate is the distance north of 
+        the centroid of stations.
+
+        Parameters
+        ----------
+        locations: array_like
+            A list of lat/long pairs
+
+        Returns
+        -------
+        mile_locs: numpy.array
+            An array with the first column representing x coordinates in miles and the second column
+            representing y coordinates in miles.
+        """
+
+        long_locs = np.array(locations)[:,0]-self.station_centroid[0]
+        lat_locs = np.array(locations)[:,1]-self.station_centroid[1]
+        mile_locs = np.zeros((len(locations),2))
+        mile_locs[:,0] = (long_locs)*69.0*np.cos(self.station_centroid[1]*np.pi/180)
+        mile_locs[:,1] = (lat_locs)*69.0 #converting to miles
+        return mile_locs
+
     def balanced_assignment(self, exponent=1):
         """
         Determines which available unit should go to which available station
@@ -295,7 +325,10 @@ class move_up_model:
         """
 
         ideal_station_locs = [self.station_locs[self.station_list.index(i)] for i in self.ideal_stations]
-        self.distance_matrix = distance_matrix(np.array(self.unit_locs), np.array(ideal_station_locs)) ** exponent
+        ideal_stations_miles = self.miles_convert(ideal_station_locs)
+        unit_locs_miles = self.miles_convert(self.unit_locs)
+
+        self.distance_matrix = distance_matrix(np.array(unit_locs_miles), np.array(ideal_stations_miles))** exponent
         movements = linear_sum_assignment(self.distance_matrix)
         self.movement_rec = []
         for i in range(len(self.ideal_stations)):
@@ -327,7 +360,7 @@ class move_up_model:
 
         for rec in self.movement_rec:
             # Assumption is that if a unit id ends with the station id, then it's not a move
-            if not rec['distance'] < 0.02:
+            if rec['distance'] > 0.01:
                 append = {}
                 append['unit_id'] = rec['unit']
                 append['station'] = rec['station']
