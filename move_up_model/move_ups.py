@@ -141,7 +141,7 @@ class move_up_model:
         """
 
         #Our token
-        token = os.environ['mapbox_key']
+        token = os.environ.get('MAPBOX_API_KEY')
 
         base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
         drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
