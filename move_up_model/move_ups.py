@@ -11,9 +11,13 @@ from scipy.optimize import linear_sum_assignment
 import psycopg2
 import pdb
 from psycopg2.extras import RealDictCursor
+from matplotlib.path import Path
 import pandas as pd
 import numpy as np
+import asyncio
+import aiohttp
 import os
+from shapely.ops import cascaded_union
 
 
 class move_up_model:
@@ -27,6 +31,11 @@ class move_up_model:
             setattr(self, key, input_data[key])
         self.fdid = fdid
         self.state = state
+        
+        #Getting long/lat coordinates out of incident distribution
+        self.incident_coords = np.zeros((len(self.incident_distribution), 2))
+        for i, location in enumerate(self.incident_distribution):
+            self.incident_coords[i,:] = np.flip(pgh.decode(location))
 
         # Getting jurisdictional boundary
         self.get_boundary()
@@ -35,10 +44,10 @@ class move_up_model:
         self.count_available()
 
         # Getting coverage polygons of currently available units
-        self.get_unit_coverage_polys()
+        self.get_unit_coverage_paths()
 
         # Getting station coverage polygons
-        self.get_station_coverage_polys()
+        self.get_station_coverage_paths()
 
         # Assigning each incident to coverage polygons
         self.build_sets()
@@ -67,7 +76,7 @@ class move_up_model:
             if status['status'] == 'AVAILABLE':
                 self.num_available += 1
 
-    def get_station_coverage_polys(self):
+    def get_station_coverage_paths(self):
         """
         Using the station location geohashes, creates a dictionary of "coverage polygons" for the stations.
         For each station, the coverage polygon is the set of locations that is within a self.coverage_time 
@@ -75,7 +84,7 @@ class move_up_model:
         
         Attributes
         ----------
-        self.station_coverage_polys: dict
+        self.station_coverage_paths: dict
             Dictionary of shapely polygons describing the coverage polygons for each station
         self.station_locs: list
             List of long/lat coordinates for each station
@@ -83,6 +92,7 @@ class move_up_model:
             List of station ids
         """
 
+        self.station_coverage_paths = {}
         self.station_coverage_polys = {}
         self.station_list = []  # A list of all station ids
         self.station_locs = []  # A list of all station locations
@@ -91,20 +101,25 @@ class move_up_model:
             lat, long = pgh.decode(status['location'])
             self.station_locs.append([long, lat])
             self.station_list.append(status['station_id'])
-            self.station_coverage_polys[status['station_id']] = self.drivetime_poly(long, lat, self.covered_time)
+            
+            
+        polygons = self.drivetime_poly(self.station_locs, self.covered_time)
+        for i,station in enumerate(self.station_list):
+            self.station_coverage_paths[station] = polygons[i]
+            self.station_coverage_polys[station] = Polygon(polygons[i].to_polygons()[0]).buffer(0)
 
         #Computing centroid of all stations so we can convert distances to miles 
         self.station_centroid = [np.mean(np.array(self.station_locs)[:,0]), 
                               np.mean(np.array(self.station_locs)[:,1])]
             
-    def get_unit_coverage_polys(self):
+    def get_unit_coverage_paths(self):
         """
         Using the locations of currently available units, get corresponding coverage polygons and compute
         fraction of incidents that are within the coverage polygon of a unit 
         
         Attributes
         ----------
-        self.unit_coverage_polys: dict
+        self.unit_coverage_paths: dict
             Dictionary of shapely polygons describing the coverage polygons for each currently available unit   
         self.unit_locs: list
             List of long/lat coordinates for each available unit
@@ -112,6 +127,7 @@ class move_up_model:
             List of available unit ids
         """
 
+        self.unit_coverage_paths = {}
         self.unit_coverage_polys = {}
         self.unit_list = []  # A list of all available unit ids
         self.unit_locs = []  # A list of all current locations of available units
@@ -122,11 +138,18 @@ class move_up_model:
                 lat, long = pgh.decode(status['current_location'])
                 self.unit_locs.append([long, lat])
                 self.unit_list.append(status['unit_id'])
-                polygon = self.drivetime_poly(long, lat, self.covered_time).buffer(0)
-                self.unit_coverage_polys[status['unit_id']] = polygon
-                self.current_unionized_poly = self.current_unionized_poly.union(polygon)
+                
+                
+                
+        
+        polygons = self.drivetime_poly(self.unit_locs, self.covered_time)
+        for i,unit in enumerate(self.unit_list):
+            self.unit_coverage_paths[unit] = polygons[i]
+            self.unit_coverage_polys[unit] = Polygon(polygons[i].to_polygons()[0]).buffer(0)
+                
+        self.current_unionized_poly = cascaded_union(self.unit_coverage_polys.values())
 
-    def drivetime_poly(self, long, lat, drivetime=4):
+    def drivetime_poly(self, loc_list, drivetime=4):
         """Generates a travel time polygon surrounding a location
         
         Params
@@ -147,15 +170,31 @@ class move_up_model:
         #Our token
         token = os.environ['mapbox_key']
         
-        base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
-        drivetime_url = base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
-                                    &polygons=true&access_token={token}""".format(longitude=long,
-                                                                                latitude = lat,
-                                                                                contours_minutes = drivetime,
-                                                                                token = token)
-        getdrivetime = requests.get(drivetime_url)
-        poly = geometry.Polygon(json.loads(getdrivetime.content)['features'][0]['geometry']['coordinates'][0])
-        return poly.buffer(0)
+        #Make a list of isochrone request URLs
+        urls = []
+        poly_list = []
+        for long, lat in loc_list:
+            base_url = 'https://api.mapbox.com/isochrone/v1/mapbox/driving/'
+            urls.append(base_url+"""{longitude},{latitude}?contours_minutes={contours_minutes}
+                                        &polygons=true&access_token={token}""".format(longitude=long,
+                                                                                    latitude = lat,
+                                                                                    contours_minutes = drivetime,
+                                                                                    token = token))
+        async def fetch(session, url):
+            async with session.get(url) as response:
+                return await response.json()
+
+        async def fetch_all(urls, loop):
+            async with aiohttp.ClientSession(loop=loop) as session:
+                results = await asyncio.gather(*[fetch(session, url) for url in urls], return_exceptions=True)
+                return results
+
+        loop = asyncio.get_event_loop()
+        results = loop.run_until_complete(fetch_all(urls, loop))
+        for result in results:
+            poly_list.append(Path(result['features'][0]['geometry']['coordinates'][0]))
+            
+        return poly_list
 
     def get_boundary(self):
         """
@@ -201,25 +240,15 @@ class move_up_model:
         # Generate a set for each station that belongs to the department
         self.station_subsets = {}
         for status in tqdm(self.station_status):
-            incident_set = set()
-            for i, location in enumerate(self.incident_distribution):
-                lat, long = pgh.decode(location)
-                geom = Point(long, lat)
-                if geom.within(self.station_coverage_polys[status['station_id']]):
-                    incident_set.add(i)
-            # Make a list of sets at the aggregate level too
-            self.station_subsets[status['station_id']] = incident_set
+            self.station_subsets[status['station_id']] = set(np.where(
+                self.station_coverage_paths[status['station_id']].contains_points(self.incident_coords))[0])
 
         # Generate a set for each currently available unit
         self.unit_subsets = {}
         self.currently_covered = set()
-        for available_unit in tqdm(self.unit_coverage_polys.keys()):
-            incident_set = set()
-            for i, location in enumerate(self.incident_distribution):
-                lat, long = pgh.decode(location)
-                geom = Point(long, lat)
-                if geom.within(self.unit_coverage_polys[available_unit]):
-                    incident_set.add(i)
+        for available_unit in tqdm(self.unit_coverage_paths.keys()):
+            incident_set = set(np.where(
+                self.unit_coverage_paths[available_unit].contains_points(self.incident_coords))[0])
             # Make a list of sets at the aggregate level too
             self.unit_subsets[available_unit] = incident_set
             self.currently_covered |= self.unit_subsets[available_unit]
@@ -259,21 +288,21 @@ class move_up_model:
         
         #This list is used so that the self can reset whenever every station has a unit
         #Then if you still have available units, optimize for double coverage with the overflow, etc. 
-        available_stations = []
+        unavailable_stations = []
         
         #Compute unionized polygon of all "ideal" stations
-        self.optimized_unionized_poly = Polygon()
+        poly_list = []
         
         for i in range(self.num_available):
             # First make a list of stations that have not been added to self.ideal_stations
             remaining_stations = [station for station in list(self.station_subsets.keys()) if
-                                  station not in available_stations]
+                                  station not in unavailable_stations]
             # Then add the station that has the most uncovered incidents
             append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
             self.ideal_stations.append(append)
-            available_stations.append(append)
-            self.optimized_unionized_poly = self.optimized_unionized_poly.union(self.station_coverage_polys[append])
-
+            unavailable_stations.append(append)
+            poly_list.append(self.station_coverage_polys[append])
+            
 
             if len(remaining_stations) == 1:
                 #If we fill all the stations, then reset the list
@@ -282,7 +311,7 @@ class move_up_model:
             #After every station is covered, this shouldn't change
             self.covered |= self.station_subsets[append]
         self.moveup_frac_covered = len(self.covered) / len(self.incident_distribution)
-
+        self.optimized_unionized_poly = cascaded_union(poly_list)
     def miles_convert(self, locations):
         """
         Converts a list of lat/long pairs to x-y coordinates based on miles. The x coordinate is 
