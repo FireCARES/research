@@ -1,5 +1,4 @@
 import pygeohash as pgh
-import requests
 import json
 from tqdm import tqdm
 from shapely import geometry
@@ -8,12 +7,11 @@ from shapely.geometry import Point
 from shapely.geometry import Polygon
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
-import psycopg2
-import pdb
-from psycopg2.extras import RealDictCursor
 from matplotlib.path import Path
 import pandas as pd
 import numpy as np
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import asyncio
 import aiohttp
 import os
@@ -163,13 +161,12 @@ class move_up_model:
             
         Returns
         -------
-        poly: shapely.Polygon
-            The polygon represnting the region that is within a *drivetime* travel time from the specified point
+        poly_list: list
+            List of matplotlib paths to describe drivetime geometry
         """
         
-        #Our token
         token = os.environ['mapbox_key']
-        
+
         #Make a list of isochrone request URLs
         urls = []
         poly_list = []
