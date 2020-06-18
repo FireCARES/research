@@ -8,8 +8,6 @@ from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from matplotlib.path import Path
 import pandas as pd
 import numpy as np
