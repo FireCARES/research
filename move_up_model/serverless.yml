@@ -12,8 +12,8 @@ package:
     - __pycache__/**
     - package-lock.json
     - Python-3.8.2/**
-  zip: true
-  slim: true
+  zip: false
+  slim: false
 
 custom:
   pythonRequirements:
