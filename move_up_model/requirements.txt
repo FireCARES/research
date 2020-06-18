@@ -1,5 +1,4 @@
 pygeohash==1.2.0
-pytz==2020.1
 scipy==1.4.1
 Shapely==1.7.0
 aiohttp==3.6.2
