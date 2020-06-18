@@ -6,17 +6,17 @@ plugins:
 
 package:
   individually: false
+  include:
+    - 'handler.py'
+    - 'move_ups.py'
   exclude:
-    - node_modules/**
-    - venv/**
-    - __pycache__/**
-    - package-lock.json
-    - Python-3.8.2/**
+    - '**'
   zip: true
   slim: true
 
 custom:
   pythonRequirements:
+    useStaticCache: false
     dockerizePip: non-linux
     pythonBin: /usr/local/bin/python3.8
     dockerEnvVars:
