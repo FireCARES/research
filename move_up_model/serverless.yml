@@ -6,14 +6,8 @@ plugins:
 
 package:
   individually: false
-  exclude:
-    - node_modules/**
-    - venv/**
-    - __pycache__/**
-    - package-lock.json
-    - Python-3.8.2/**
-  zip: false
-  slim: false
+  zip: true
+  slim: true
 
 custom:
   pythonRequirements:
