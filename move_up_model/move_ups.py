@@ -5,6 +5,7 @@ from tqdm import tqdm
 from shapely import geometry
 from shapely.geometry import Point
 from shapely.geometry import Polygon
+from shapely.ops import cascaded_union
 from scipy.spatial import distance_matrix
 from scipy.optimize import linear_sum_assignment
 import psycopg2
@@ -14,7 +15,6 @@ import pandas as pd
 import numpy as np
 import asyncio
 import aiohttp
-from shapely.ops import cascaded_union
 
 class move_up_model:
     """
