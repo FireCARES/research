@@ -7,7 +7,7 @@ plugins:
 custom:
   pythonRequirements:
     slim: true
-    zip: true
+    zip: false
     dockerizePip: non-linux
     pythonBin: /usr/local/bin/python3.8
     dockerEnvVars:
