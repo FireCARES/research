@@ -138,7 +138,7 @@ class move_up_model:
 
         self.current_unionized_poly = cascaded_union(self.unit_coverage_polys.values())
 
-    def drivetime_poly(self, long, lat, drivetime=4):
+    def drivetime_poly(self, loc_list, drivetime=4):
         """Generates a travel time polygon surrounding a location
         
         Params
