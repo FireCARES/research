@@ -11,6 +11,8 @@ package:
 
 custom:
   pythonRequirements:
+    noDeploy:
+      - __pycache__
     dockerizePip: non-linux
     pythonBin: /usr/local/bin/python3.8
     dockerEnvVars:
