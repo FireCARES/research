@@ -303,7 +303,7 @@ class move_up_model:
 
             if len(remaining_stations) == 1:
                 #If we fill all the stations, then reset the list
-                available_stations = []
+                unavailable_stations = []
             
             #After every station is covered, this shouldn't change
             self.covered |= self.station_subsets[append]
