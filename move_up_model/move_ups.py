@@ -283,30 +283,25 @@ class move_up_model:
         self.covered = set()
         self.ideal_stations = []
         
-        #This list is used so that the self can reset whenever every station has a unit
-        #Then if you still have available units, optimize for double coverage with the overflow, etc. 
-        unavailable_stations = []
-        
         #Compute unionized polygon of all "ideal" stations
         poly_list = []
-        
+        used_all_stations = False
         for i in range(self.num_available):
-            # First make a list of stations that have not been added to self.ideal_stations
-            remaining_stations = [station for station in list(self.station_subsets.keys()) if
-                                  station not in unavailable_stations]
-            # Then add the station that has the most uncovered incidents
-            append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
-            self.ideal_stations.append(append)
-            unavailable_stations.append(append)
-            poly_list.append(self.station_coverage_polys[append])
-            
+            if not used_all_stations:
+                # First make a list of stations that have not been added to self.ideal_stations
+                remaining_stations = [station for station in list(self.station_subsets.keys()) if
+                                      station not in self.ideal_stations]
+                # Then add the station that has the most uncovered incidents
+                append = max(remaining_stations, key=lambda idx: len(self.station_subsets[idx] - self.covered))
+                self.ideal_stations.append(append)
+                poly_list.append(self.station_coverage_polys[append])
 
-            if len(remaining_stations) == 1:
-                #If we fill all the stations, then reset the list
-                unavailable_stations = []
-            
-            #After every station is covered, this shouldn't change
-            self.covered |= self.station_subsets[append]
+                self.covered |= self.station_subsets[append]
+                
+                if len(remaining_stations) == 1:
+                    #If we fill all the stations, then we're done
+                    used_all_stations = True
+                
         self.moveup_frac_covered = len(self.covered) / len(self.incident_distribution)
         self.optimized_unionized_poly = cascaded_union(poly_list)
     def miles_convert(self, locations):
