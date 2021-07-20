@@ -8,11 +8,10 @@ import simplejson
 import urllib
 import requests, json 
 import numpy as np
-import googlemaps 
+import googlemaps
+import os
  
-
-#This is my (Tyler II) API key for gmaps
-api_key = 'AIzaSyAm7PSvh_ifOKWjpGbK8araMvt1GADHvSw'
+api_key = os.environ['GOOGLE_MAPS_API_KEY']
 gmaps = googlemaps.Client(key=api_key) 
 
 
