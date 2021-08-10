@@ -1,3 +1,5 @@
+import os
+import json
 import googlemaps 
 from tqdm.notebook import tqdm
 import numpy as np
@@ -7,6 +9,8 @@ import pickle
 import pandas as pd
 import pdb
 import psycopg2
+from elasticsearch import Elasticsearch
+from elasticsearch_dsl import Search, Q
 from shapely import wkb
 from psycopg2.extras import RealDictCursor
 from copy import deepcopy
@@ -15,6 +19,10 @@ from datetime import datetime
 from scipy.stats import lognorm
 import matplotlib.pyplot as plt
 sns.set_style('darkgrid')
+
+SERVICE = 'firecares-austin'
+ES_USER = os.getenv('ES_USER')
+ES_PASSWORD = os.getenv('ES_PASSWORD')
 
 #Make a class for the department, which will hold aggregate level information
 class department:
@@ -26,7 +34,7 @@ class department:
 
     """
 
-    def __init__(self,firecares_id, fdid, state, load_all=False, unit_types=None, bad_units=None,p = (10,50,90),
+    def __init__(self,firecares_id, fdid, state, load_all=False, unit_type_mapping=None, bad_units=None,p = (10,50,90), exclude_stations=None,
                 weights = (0.3,0.4,0.3)):
 
         """
@@ -50,8 +58,15 @@ class department:
         self.firecares_id = firecares_id
         self.fdid = fdid
         self.state = state
-        self.unit_types = unit_types
+        self.unit_type_mapping = unit_type_mapping
+        self.replace_mapping = {}
+        for k,v in unit_type_mapping.items():
+            for x in v:
+                self.replace_mapping.setdefault(x,k)
+        self.unit_types = list(set(self.replace_mapping.values()))
+        print(self.unit_types)
         self.bad_units = bad_units
+        self.exclude_stations = exclude_stations
         self.p = p
         self.weights = weights
         
@@ -61,7 +76,10 @@ class department:
 
         if load_all==True:
             self.apparatus_query(load_dir='./apparatus_df')
-        self.unit_reset(recalculate=False)
+            self.unit_reset(recalculate=False)
+        else:
+            self.apparatus_query()
+            self.unit_reset(recalculate=False)
 
     def boundary_query(self):
 
@@ -78,13 +96,13 @@ class department:
 
         """
 
-        print("Acquiring deprartment's jurisdictional boundary...")
+        print("Acquiring department's jurisdictional boundary...")
         q = """
         select * from firestation_firedepartment
         where fdid='"""+self.fdid+"""'
         and state='"""+self.state+"""'"""
 
-        nfirs=psycopg2.connect('service=nfirs')
+        nfirs=psycopg2.connect('service={}'.format(SERVICE))
         with nfirs.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(q)
             items=cur.fetchall()
@@ -122,37 +140,25 @@ class department:
             #If not load directory is specified, generate the df from incident data and save it
             print("Querying incident data from NFORS...")
 
-            es = Elasticsearch()
-            s = Search(using=es,index='*-fire-incident-*')
+            if ES_USER and ES_PASSWORD:
+                es = Elasticsearch(['http://localhost:8080'], http_auth=(ES_USER,ES_PASSWORD))
+            else:
+                es = Elasticsearch()
+            q = Q('match',fire_department__firecares_id=self.firecares_id) & Q('range', description__event_closed={
+                'lte': '2020-04-30T23:59:59-04:00','gte': '2019-05-01T00:00:00-04:00'})
+            s = Search(using=es,index='*-fire-incident-*,-*apparatus*')
             response = s.source(['apparatus','address.latitude','address.longitude',
-                                 'durations.travel.seconds','address.first_due',
-                                'description.event_opened','description.event_closed','description.event_opened',
-                     'weather.daily.precipIntensity',
-                     'weather.daily.precipType',
-                     'description.day_of_week',
-                     'weather.daily.temperatureHigh',
-                    'NFPA.type',
-                  'weather.daily.windGust',
-                  'weather.daily.visibility',
-                  'weather.daily.uvindex',
-                  'weather.daily.pressure',
-                  'weather.daily.summary',
-                  'weather.daily.windSpeed',
-                  'weather.daily.cloudCover',
-                  'weather.currently.humidity',
-                  'weather.currently.dewPoint',
-                  'weather.daily.precipAccumulation',
-                  'description.comments',
-                'fire_department.firecares_id']).query('match',fire_department__firecares_id=self.firecares_id)
-
+                     'address.first_due','description.event_closed',
+                     'description.event_opened',
+                     'fire_department.firecares_id']).query(q)
 
             results_df = pd.DataFrame((d.to_dict() for d in response.scan()))
             json_struct = json.loads(results_df.to_json(orient="records"))
-            df_flat = pd.io.json.json_normalize(json_struct)
+            df_flat = pd.json_normalize(json_struct)
             df_flat['incident'] = df_flat.index.values
 
             #Expand apparatus entry of df_flat so now we get a pd series of dataframes
-            df_list = df_flat.apparatus.apply(pd.io.json.json_normalize)
+            df_list = df_flat.apparatus.dropna().apply(pd.json_normalize) #exclude incidents with no apparatus response
 
             print("Done! \n")
 
@@ -173,12 +179,18 @@ class department:
             #If a load_dir is specified, simply load the dataframe.
             self.df = pd.read_pickle(load_dir+"/"+self.firecares_id+'apparatus')
         if self.unit_types:
+            #If unit type mapping is specified, then perform the conversion on the dataframe
+            self.df['unit_type'] = self.df['unit_type'].replace(self.replace_mapping)
             #If unit types are specified, only consider them in the dataframe
             self.df = self.df[self.df['unit_type'].isin(self.unit_types)].reset_index(drop=True)
         #Ignore specific unit_ids if specified
         if self.bad_units:
             self.df = self.df[~self.df['unit_id'].isin(self.bad_units)].reset_index(drop=True)
-            
+        #Ignore specific stations if specified
+        if self.exclude_stations:
+            self.df = self.df[~self.df['station'].isin(self.exclude_stations)].reset_index(drop=True)
+            self.df = self.df[~self.df['address.first_due'].isin(self.exclude_stations)].reset_index(drop=True)
+        
         #Removing first due areas that don't correspond to a station that sends units
         self.df = self.df[self.df['address.first_due'].isin(self.df['station'].unique())].reset_index(drop=True)
         self.df['from_first_due'] = self.df['address.first_due']  == self.df['station']
@@ -232,7 +244,7 @@ class department:
         INNER JOIN FIRESTATION_FIREDEPARTMENT FD ON FD.ID = FS.DEPARTMENT_ID
         WHERE FD.FDID = %(fdid)s AND FD.STATE = %(state)s"""
 
-        nfirs = psycopg2.connect('service=nfirs')
+        nfirs = psycopg2.connect('service={}'.format(SERVICE))
         with nfirs.cursor(cursor_factory=RealDictCursor) as c:
                 c.execute(stations, dict(fdid=self.fdid, state=self.state))
                 items = c.fetchall()
@@ -282,12 +294,16 @@ class department:
 
         #Getting the geometry for the station associated with the unit
         self.station_df['station'] = self.station_df['station_number'].apply(lambda x: prefix+str(x))
+        if self.exclude_stations:
+            self.station_df = self.station_df[~self.station_df['station'].isin(self.exclude_stations)].reset_index(drop=True)
         if 'station_loc' not in self.df.columns:
             self.df = self.df.merge(self.station_df[['station','geom']], on='station')
             self.df = self.df.rename(columns={'geom': 'station_loc'})
 
         #Getting the geometry of the first due station, which is not necessarily the unit's station
         self.station_df['station'] = self.station_df['station_number'].apply(lambda x: prefix+str(x))
+        if self.exclude_stations:
+            self.station_df = self.station_df[~self.station_df['station'].isin(self.exclude_stations)].reset_index(drop=True)
         if 'first_due_loc' not in self.df.columns:
             self.df = self.df.merge(self.station_df.rename(columns={'station':'address.first_due'})[['address.first_due','geom']], on='address.first_due')
             self.df = self.df.rename(columns={'geom': 'first_due_loc'})
@@ -693,7 +709,6 @@ class station:
         
         #The full dataframe that is passed into the station
         self.full_df = df
-        
         self.station_num = station_num
         self.units = self.df[['unit_id', 'unit_type']].drop_duplicates().reset_index(drop=True)
         
