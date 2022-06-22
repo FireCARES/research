@@ -8,7 +8,7 @@ idna==2.9
 kiwisolver==1.2.0
 matplotlib==3.2.1
 multidict==4.7.6
-numpy==1.18.5
+numpy==1.22.0
 pandas==1.0.4
 psycopg2==2.8.5
 pygeohash==1.2.0
